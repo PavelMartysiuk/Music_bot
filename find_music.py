@@ -3,31 +3,30 @@ from requests.exceptions import HTTPError
 from bs4 import BeautifulSoup
 
 
-def find_mus(song):
-    site = 'https://zaycev.net/'
-    url = 'https://zaycev.net/search.html?query_search='
-    song_url = url + song
-    response = requests.get(song_url)
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.text, 'html.parser')
-        try:
-            main_class = soup.find(class_='musicset-track-list__items')
-            child_class = main_class.find(class_="musicset-track__download-link track-geo__button")
-            href_music = child_class.get('href')
-            full_music_href = site + href_music
-        except AttributeError as att:
-            print(f'Attribute error{att}')
-            return('Error')
-        return (full_music_href)
-    else:
-        return('Error')
+def check_connect(site_url):
+    try:
+        response = requests.get(site_url)
+    except Exception as exc:
+        print(f'Error:{exc}')
+    except HTTPError as httperr:
+        print(f'Error {httperr}')
+    if response.status_code == 404:
+        print('Page not found')
+    return response.text
 
 
-def download_music(url, song):
-    response = requests.get(url)
-    with open(f'music/{song}.mp3', 'wb') as file:
-        file.write(response.content)
+def download_music(song):
+    SITE = 'https://zaycev.net'
+    search_url = 'https://zaycev.net/search.html?query_search='
+    song_url = search_url + song
+    response = check_connect(song_url)
+    if response:
+        soup = BeautifulSoup(response, 'html.parser')
+        music_href = soup.find('a', class_='musicset-track__download-link track-geo__button').get('href')
+        full_music_href = SITE + music_href
+        music_in_binary = requests.get(full_music_href).content
+        return music_in_binary
 
 
 if __name__ == '__main__':
-    print(find_mus('qqvmghjjhg'))
+    print(download_music())

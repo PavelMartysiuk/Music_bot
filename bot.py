@@ -1,41 +1,27 @@
 import telebot
 import config
-import time
-from find_music import find_mus, download_music
-from os import listdir
+from find_music import download_music
 
 bot = telebot.TeleBot(config.token)
 
 
-@bot.message_handler(commands=["start"])
+@bot.message_handler(commands=["start", ])
 def start_message(message):
     bot.send_message(message.chat.id, 'Hi,Я Enot, я могу найти любую музыку!')
 
 
-@bot.message_handler(content_types=['text'])
-def send(message):
-    saved_song = listdir('music')
-    start_time = time.time()
-    song = message.text
-    if song + '.mp3' in saved_song:
-        bot.send_audio(chat_id=message.chat.id, audio=open(f'music/{message.text}.mp3', 'rb'))
-        print(f'I have this mus in folder. My time is {start_time - time.time()}')
-    else:
-        song = song.split()
-        song = '+'.join(song)
-        song_url = find_mus(song)
-        print(song_url)
-        print(f'got Url{start_time - time.time()}')
-        if song_url == 'Error':
-            bot.send_message(message.chat.id,'Song not found')
-        else:
-            download_music(song_url, message.text)
-            time_save = time.time()
-            print(f'save mus {time_save - time.time()}')
-            send_mus = time.time()
-            bot.send_audio(chat_id=message.chat.id, audio=open(f'music/{message.text}.mp3', 'rb'))
+@bot.message_handler(commands=['find_music', ])
+def find_music(message):
+    chat_id = message.chat.id
+    msg = bot.send_message(chat_id=chat_id, text='Отправь исполнителя и название песни')
+    bot.register_next_step_handler(msg, send_music)
 
-            print(f'send music{send_mus - time.time()}')
+
+def send_music(message):
+    song = message.text.split()
+    song_to_url = '+'.join(song)
+    binary_song = download_music(song_to_url)
+    bot.send_audio(chat_id=message.chat.id, audio=binary_song)
 
 
 if __name__ == '__main__':
